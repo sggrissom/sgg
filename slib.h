@@ -33,18 +33,19 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include <stdlib.h>
 
-    typedef int8_t s8;
-    typedef int16_t s16;
-    typedef int32_t s32;
-    typedef int64_t s64;
-    typedef uint8_t u8;
-    typedef uint16_t u16;
-    typedef uint32_t u32;
-    typedef uint64_t u64;
-    typedef float r32;
-    typedef double r64;
-    typedef u32 b32;
+typedef int8_t s8;
+typedef int16_t s16;
+typedef int32_t s32;
+typedef int64_t s64;
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef float r32;
+typedef double r64;
+typedef u32 b32;
 
 #define internal static
 #define persist static
@@ -53,10 +54,17 @@ extern "C" {
 #define pi32 3.14159265359f
 
 #if SLOW
-// TODO(steven): Complete assertion macro
-#define Assert(x) if(!(x)) {*(volatile u32 *)0 = 0;}
+#define Crash {*(volatile u32 *)0 = 0;}
+#define Assert(x) if(!(x)) {                                        \
+        fprintf(stderr, "Assert Failed:\n%s\nFILE:%s\nLINE:%d\n", \
+                #x, \
+                __FILE__, \
+                __LINE__); \
+        exit(0); \
+}
 #else
 #define Assert(x)
+#define Crash
 #endif
 
 #define InvalidCodePath Assert(!"InvalidCodePath")
@@ -72,6 +80,8 @@ extern "C" {
 #define Maximum(x,y) ((x) > (y) ? (x) : (y))
 // TODO(steven): swap. maybe xor swap?
 
+
+//My own atoi. Theoretically faster? I should test it.
 internal u32
 sg_atoi(const char *s)
 {
@@ -87,6 +97,25 @@ sg_atoi(const char *s)
     return result;
 }
 
+/*
+  This is equivolent to a vector in C++ and is straight from Sean Barrett's
+  stretchy-buffer in his stb libs. (Literally, this is exactly his code with only
+  name difference)
+      
+  sg_buffer usage:
+
+  a_struct_of_whatevs *GrowieBuffer
+
+  for(;;)
+  {
+    a_struct_of_whatevs NewStruct;
+    NewStruct.field1 = x;
+    NewStruct.field2 = y;
+
+    buffer_push(GrowieBuffer, NewStruct);
+  }
+*/
+    
 #define buffer_free(a)       ((a) ? free(buffer_raw(a)),0 : 0)
 #define buffer_push(a,v)     (buffer_maybe_grow(a,1), (a)[buffer_used(a)++] = (v))
 #define buffer_count(a)      ((a) ? buffer_used(a) : 0)
@@ -108,8 +137,10 @@ sg_grow_buffer(void *Array, s32 SizeIncrease, u32 ItemSize)
     
     u32 DoubleCurrentSize = Array ? 2*buffer_size(Array) : 0;
     u32 MinimumNewSize = buffer_count(Array) + SizeIncrease;
-    u32 NewSize = DoubleCurrentSize > MinimumNewSize ? DoubleCurrentSize : MinimumNewSize;
-    u32 *p = (u32 *) realloc(Array ? buffer_raw(Array) : 0, ItemSize*NewSize + sizeof(u32)*2);
+    u32 NewSize = ((DoubleCurrentSize > MinimumNewSize)
+                   ? DoubleCurrentSize : MinimumNewSize);
+    u32 *p = (u32 *)realloc(Array ? buffer_raw(Array) : 0,
+                            ItemSize*NewSize + sizeof(u32)*2);
     if(p)
     {
         if(!Array)

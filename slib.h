@@ -32,6 +32,7 @@ extern "C" {
 #include <intrin.h>
 #endif
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -52,6 +53,12 @@ typedef u32 b32;
 #define global static
 
 #define pi32 3.14159265359f
+
+#ifndef WIN32
+#define LONG "%lld"
+#else
+#define LONG "%I64u"
+#endif
 
 #if SLOW
 #define Crash {*(volatile u32 *)0 = 0;}
@@ -159,6 +166,50 @@ sg_grow_buffer(void *Array, s32 SizeIncrease, u32 ItemSize)
     return Result;
 }
 
+internal void
+Quicksort_(u32 *Array, s32 First, s32 Last)
+{
+    s32 Pivot, I, J;
+    u32 Temp;
+
+    if(First < Last)
+    {
+        Pivot = First;
+        I = First;
+        J = Last;
+
+        while(I < J)
+        {
+            while(Array[I] <= Array[Pivot] && I < Last)
+            {
+                ++I;
+            }
+            while(J > Pivot && Array[J] <= Array[Pivot])
+            {
+                --J;
+            }
+            if(I < J)
+            {
+                Temp = Array[I];
+                Array[I] = Array[J];
+                Array[J] = Temp;
+            }
+        }
+
+        Temp = Array[Pivot];
+        Array[Pivot] = Array[J];
+        Array[J] = Temp;
+        Quicksort_(Array, First, J-1);
+        Quicksort_(Array, J+1, Last);
+    }
+}
+
+internal void
+Quicksort(u32 *Array, u32 Size)
+{
+    Quicksort_(Array, 0, Size-1);
+}
+    
 #ifdef __cplusplus
 }
 #endif

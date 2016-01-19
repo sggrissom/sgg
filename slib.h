@@ -1,4 +1,4 @@
-#if !defined(SGG_H)
+#if !defined(SLIB_H)
 /* ========================================================================
    $File: $
    $Date: $
@@ -214,5 +214,5 @@ Quicksort(u32 *Array, u32 Size)
 }
 #endif
     
-#define SGG_H
+#define SLIB_H
 #endif

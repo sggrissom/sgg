@@ -1,4 +1,4 @@
-#if !defined(SGG_H)
+#if !defined(SLIB_H)
 /* ========================================================================
    $File: $
    $Date: $
@@ -55,20 +55,21 @@ typedef u32 b32;
 #define pi32 3.14159265359f
 
 #ifndef WIN32
-#define LONG "%lld"
+#define LONGF "%lld"
 #else
-#define LONG "%I64u"
+#define LONGF "%I64u"
 #endif
 
 #if SLOW
 #define Crash {*(volatile u32 *)0 = 0;}
 #define Assert(x) if(!(x)) {                                        \
-        fprintf(stderr, "Assert Failed:\n%s\nFILE:%s\nLINE:%d\n", \
-                #x, \
-                __FILE__, \
-                __LINE__); \
-        exit(0); \
-}
+        fprintf(stderr, "Assert Failed:\n%s\nFILE:%s\nLINE:%d\n",   \
+                #x,                                                 \
+                __FILE__,                                           \
+                __LINE__);                                          \
+            __debugbreak();                                         \
+            exit(0);                                                \
+        }                                                           
 #else
 #define Assert(x)
 #define Crash
@@ -82,15 +83,16 @@ typedef u32 b32;
 #define Gigabytes(value) (Megabytes(value)*1024LL)
 #define Terabytes(value) (Gigabytes(value)*1024LL)
 
+#ifndef ArrayCount
 #define ArrayCount(array) (sizeof(array) / sizeof((array)[0]))
+#endif
 #define Minimum(x,y) ((x) < (y) ? (x) : (y))
 #define Maximum(x,y) ((x) > (y) ? (x) : (y))
 // TODO(steven): swap. maybe xor swap?
 
 
-//My own atoi. Theoretically faster? I should test it.
 internal u32
-sg_atoi(const char *s)
+sg_atoi(char *s)
 {
     u32 result = 0;
 
@@ -105,9 +107,8 @@ sg_atoi(const char *s)
 }
 
 /*
-  This is equivolent to a vector in C++ and is straight from Sean Barrett's
-  stretchy-buffer in his stb libs. (Literally, this is exactly his code with only
-  name difference)
+  Sean Barrett's stretchy-buffer from his stb libs.
+  (Literally, this is exactly his code with only name difference)
       
   sg_buffer usage:
 
@@ -129,13 +130,13 @@ sg_atoi(const char *s)
 #define buffer_grow(a,n)     (buffer_maybe_grow(a,n), buffer_used(a)+=(n),&(a)[buffer_used(a)-(n)])
 #define buffer_last(a)       ((a)[buffer_used(a)-1])
 
-#define buffer_raw(a)        ((s32 *) (a) - 2)
+#define buffer_raw(a)        ((u32 *) (a) - 2)
 #define buffer_size(a)       buffer_raw(a)[0]
 #define buffer_used(a)       buffer_raw(a)[1]
 
 #define buffer_test(a,n)     ((a)==0 || buffer_used(a)+(n) >= buffer_size(a))
 #define buffer_maybe_grow(a,n) (buffer_test(a,(n)) ? buffer_expand(a,n) : 0)
-#define buffer_expand(a,n)   ((a) = sg_grow_buffer((a), (n), sizeof(*(a))))
+#define buffer_expand(a,n)   ((a) = (decltype(a))sg_grow_buffer((a), (n), sizeof(*(a))))
     
 internal void *
 sg_grow_buffer(void *Array, s32 SizeIncrease, u32 ItemSize)
@@ -166,53 +167,9 @@ sg_grow_buffer(void *Array, s32 SizeIncrease, u32 ItemSize)
     return Result;
 }
 
-internal void
-Quicksort_(u32 *Array, s32 First, s32 Last)
-{
-    s32 Pivot, I, J;
-    u32 Temp;
-
-    if(First < Last)
-    {
-        Pivot = First;
-        I = First;
-        J = Last;
-
-        while(I < J)
-        {
-            while(Array[I] <= Array[Pivot] && I < Last)
-            {
-                ++I;
-            }
-            while(J > Pivot && Array[J] <= Array[Pivot])
-            {
-                --J;
-            }
-            if(I < J)
-            {
-                Temp = Array[I];
-                Array[I] = Array[J];
-                Array[J] = Temp;
-            }
-        }
-
-        Temp = Array[Pivot];
-        Array[Pivot] = Array[J];
-        Array[J] = Temp;
-        Quicksort_(Array, First, J-1);
-        Quicksort_(Array, J+1, Last);
-    }
-}
-
-internal void
-Quicksort(u32 *Array, u32 Size)
-{
-    Quicksort_(Array, 0, Size-1);
-}
-    
 #ifdef __cplusplus
 }
 #endif
     
-#define SGG_H
+#define SLIB_H
 #endif
